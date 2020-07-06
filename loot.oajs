@@ -1,0 +1,111 @@
+var loot_bag = 0x405990CD;
+var cut_corpses = 1;
+
+// Loot from container
+function loot_from_container(container_serial) {
+    _counter = 0
+    _loot = [
+        // General
+        0x0EED, // Gold
+        0x0F3F, // Arrows
+        0x1BFB, // Bolts
+        0x0E21, // Bandages
+        0x0E75, // Bag with loot
+        0x0F21, // Shard of crystone
+        // Gems
+        0x0F11, // Sapphire
+        0x0F25, // Piece of Amber
+        0x0F10, // Emerald
+        0x0F18, // Tourmaline
+        0x0F13, // Rubie
+        0x0F0F, // Star Sapphire
+        0x0F26, // Diamond
+        0x0F15, // Citrine
+        0x0F16, // Amethyst
+        // EXP Items
+        0x0E35, // Shadow exp scroll
+        // Misc
+        0x0DF8, // Ashes of...
+
+    ];
+    // Items to use after loot ( eg. exp scrolls )
+    _use_after_loot = [
+	    0x0E35, // Shadow exp scroll
+    ];
+    if (!Orion.FindObject(loot_bag))
+        loot_bag = backpack;
+    // ###################
+    Orion.UseObject(container_serial);
+    Orion.Wait(300);
+    var _found_items = Orion.FindType(_loot.join("|"), 0xFFFF, container_serial);
+    if (_found_items.length) {
+        _found_items.forEach(function(_loot_item) {
+            _counter++;
+            Orion.Print("Item " + _counter + "/" + _found_items.length);
+            _current_item_container = Orion.FindObject(_loot_item).Container();
+            _try = 0;
+            while(Orion.FindObject(_loot_item).Container() == _current_item_container)
+            {
+            	_try++;
+            	if(_try > 20)
+            		return;
+            	
+	            Orion.MoveItem(_loot_item, 0, loot_bag);
+                Orion.Wait(600); 
+	         }
+        });
+        var _found_useable = Orion.FindType(_use_after_loot.join("|"), 0xFFFF, loot_bag);
+        if (_found_useable.length)
+        {
+        	_found_useable.forEach(function(_useable_item){
+        		Orion.UseObject(_useable_item);
+        		Orion.Wait(100);
+        	});
+        }
+    }
+
+}
+
+
+function loot() {
+	// Items to throw away after looting ( eg. ore from elementals after skinning )
+    _trash_items = [
+    	0x19B9, // Ore
+    	0x1CE1, // Human head 
+    ];
+    var _counter = 0;
+    var _corpses = Orion.FindType(0x2006, 0xFFFF, ground);
+    if (_corpses.length) {
+        _corpses.forEach(function(_corpse) {
+                _counter++;
+                Orion.Print("> Corpse " + _counter + "/" + _corpses.length);
+                loot_from_container(_corpse);
+                if (cut_corpses == 1) {
+                	_try = 0;
+					while(Orion.ObjectExists(_corpse))
+					{
+						_try++;
+						if( _try > 10 )
+							return;
+	                	if(Orion.HaveTarget())
+	                		Orion.CancelTarget()
+	                    Orion.Say(".ubw");
+	                    Orion.Wait(200);
+	                    Orion.TargetObject(_corpse);
+	                    Orion.Wait(650);
+                    }
+
+                }
+                Orion.Wait(300);
+            });
+			_found_trash = Orion.FindType(_trash_items.join("|"), 0xFFFF, 'backpack');
+			if(_found_trash.length) 
+			{
+				_found_trash.forEach(function(_trash_item){
+					Orion.DropHere(_trash_item);
+					Orion.Wait(1000);
+				});
+			}
+		Orion.Print(">> Finished <<");
+        }
+}
